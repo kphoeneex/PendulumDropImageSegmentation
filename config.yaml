@@ -1,0 +1,6 @@
+path: C:/Users/muska/Documents/SEM 7/BTPF  # Path to your project
+train: images/train            # Path to your training images
+val: images/val                         # Path to your validation images
+
+nc: 2  # Number of classes (update this to 2 for 'rectangle' and 'drop')
+names: ['rectangle', 'drop']  # List of class names

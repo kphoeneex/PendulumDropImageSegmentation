@@ -1,0 +1,54 @@
+import os
+import cv2
+
+# Directories
+input_dir = r'C:\Users\muska\Documents\SEM 7\BTPF2\tmp\masks'
+output_dir = r'C:\Users\muska\Documents\SEM 7\BTPF2\tmp\labels'
+
+# Thresholds for classification
+MIN_RECTANGLE_WIDTH = 10  # Minimum width to consider as a rectangle
+DROP_WIDTH_THRESHOLD = 15  # Minimum width to classify as a drop
+
+# Helper function to classify contours
+def get_class_id(cnt, min_rectangle_width, drop_width_threshold):
+    x, y, w, h = cv2.boundingRect(cnt)
+    
+    # Compare width with thresholds
+    if w < min_rectangle_width:
+        return None  # Too small to be either shape
+    elif w < drop_width_threshold:
+        return 0  # Rectangle
+    else:
+        return 1  # Drop
+
+# Process each mask file
+for j in os.listdir(input_dir):
+    image_path = os.path.join(input_dir, j)
+    
+    # Load and preprocess the mask
+    mask = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    _, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY)
+    
+    H, W = mask.shape  # Height and width of the image
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    polygons = []
+    for cnt in contours:
+        if cv2.contourArea(cnt) > 200:  # Ignore small areas
+            class_id = get_class_id(cnt, MIN_RECTANGLE_WIDTH, DROP_WIDTH_THRESHOLD)
+            if class_id is not None:  # If classified successfully
+                polygon = [class_id]
+                for point in cnt:
+                    x, y = point[0]
+                    polygon.append(x / W)  # Normalize x-coordinate
+                    polygon.append(y / H)  # Normalize y-coordinate
+                polygons.append(polygon)
+    
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Save to text file
+    output_file_path = os.path.join(output_dir, f"{os.path.splitext(j)[0]}.txt")
+    with open(output_file_path, 'w') as f:
+        for polygon in polygons:
+            f.write(' '.join(map(str, polygon)) + '\n')
